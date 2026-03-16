@@ -1,0 +1,2475 @@
+﻿<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crossword 20/10</title>
+    <style>
+      :root {
+        --bg1: #2a153b;
+        --bg2: #0c0f24;
+        --ink: #fff7fb;
+        --muted: #c7b6d9;
+        --accent: #ffb3d1;
+        --accent-2: #ffd54a;
+        --good: #2bd999;
+        --bad: #ff6b6b;
+        --line: #3b2d58;
+        --cell: #1a1f3a;
+        --cellFocus: #242c57;
+        --black: #0d0a1a;
+        --pill: #1f1a36;
+        --rose1: #ff6fb7;
+        --gold1: #ffd54a;
+        --gold2: #ffec9e;
+        /* Tông vàng dành riêng cho cột từ khóa */
+        --kw1: #ffdf6e; /* nền chính */
+        --kw2: #ffc94d; /* viền / nhấn */
+        --kw3: #fff4b8; /* highlight trong suốt */
+        --cols: 22;
+        --rows: 12;
+        --size: 40px;
+        --gap: 4px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            1200px 600px at 10% -10%,
+            rgba(255, 111, 183, 0.14) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            1000px 700px at 120% 0%,
+            rgba(255, 213, 74, 0.12) 0%,
+            transparent 60%
+          ),
+          linear-gradient(180deg, var(--bg1), var(--bg2));
+        min-height: 100svh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px;
+      }
+      .app {
+        width: min(1200px, 100%);
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr 300px;
+      }
+      @media (max-width: 1024px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.04),
+          rgba(255, 255, 255, 0)
+        );
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 16px;
+        }
+        .sub {
+          font-size: 11px;
+        }
+        .card {
+          padding: 10px;
+        }
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      button,
+      .btn {
+        border: 1px solid var(--line);
+        background: #241c41;
+        color: var(--ink);
+        padding: 7px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        transition:
+          transform 0.04s,
+          background 0.2s,
+          border-color 0.2s,
+          box-shadow 0.2s;
+        font-size: 12px;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        background: #2b2250;
+        box-shadow: 0 6px 16px rgba(255, 111, 183, 0.13);
+      }
+      button.primary {
+        border-color: #5e407d;
+        background: #3b2b66;
+      }
+      button.bad {
+        border-color: #7a2a2a;
+        background: #401919;
+      }
+      button.rose {
+        border-color: #6c2d57;
+        background: #3a1c3a;
+      }
+      #keywordModeBtn[aria-pressed="true"] {
+        border-color: #ffd54a;
+        background: #5a4617;
+        box-shadow: 0 0 0 1px rgba(255, 213, 74, 0.35) inset;
+      }
+      button.music {
+        border-color: #2f7a60;
+        background: linear-gradient(180deg, #1f5a47, #194135);
+        box-shadow: 0 0 0 1px rgba(95, 221, 174, 0.25) inset;
+      }
+      button.music[aria-pressed="false"] {
+        border-color: #6e3a3a;
+        background: linear-gradient(180deg, #4b2626, #381b1b);
+        box-shadow: 0 0 0 1px rgba(255, 141, 141, 0.2) inset;
+      }
+      #musicToggleBtn.musicFloat {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        z-index: 40;
+        border-width: 2px;
+        padding: 8px 12px;
+        font-size: 13px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      }
+
+      /* GRID */
+      .gridWrap {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        overflow: visible; /* <— sửa từ hidden */
+        padding-left: 66px; /* <— chừa chỗ cho cột số hàng */
+      }
+      .rowLabels {
+        position: absolute;
+        left: 0; /* <— sửa từ -40px */
+        top: 10px;
+        display: grid;
+        grid-template-rows: repeat(var(--rows), var(--size));
+        gap: var(--gap);
+        pointer-events: none;
+      }
+      .rowLbl {
+        height: var(--size);
+        width: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2a0f24;
+        font-weight: 900;
+        background: linear-gradient(180deg, var(--rose1), #b74e86);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(255, 111, 183, 0.35);
+        font-size: 10px;
+        pointer-events: auto;
+        cursor: pointer;
+        user-select: none;
+      }
+      @media (max-width: 430px) {
+        .rowLabels {
+          display: none;
+        }
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(var(--cols), var(--size));
+        grid-auto-rows: var(--size);
+        gap: var(--gap);
+        padding: 8px 8px 8px 12px;
+        border-radius: 14px;
+        background: #121431;
+        border: 1px dashed #4a3a70;
+        position: relative;
+        touch-action: manipulation;
+        max-width: 100%;
+        overflow: hidden;
+      }
+      .cell {
+        width: var(--size);
+        height: var(--size);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--cell);
+        border: 1px solid #2b2f58;
+        position: relative;
+        overflow: hidden;
+        outline: none;
+        box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.02);
+      }
+      .cell input {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        text-transform: uppercase;
+        text-align: center;
+        font-weight: 900;
+        letter-spacing: 0.4px;
+        font-size: clamp(12px, 2.2vmin, 20px);
+        caret-color: transparent;
+      }
+      .cell:focus-within {
+        background: var(--cellFocus);
+        border-color: #6b5bb0;
+        box-shadow: 0 0 0 2px rgba(255, 179, 209, 0.35) inset;
+      }
+      .cell.black {
+        background: var(--black);
+        border-color: #151129;
+      }
+      .cell.correct {
+        background: #123a28;
+        border-color: #1b6a48;
+      }
+      .cell.wrong {
+        animation: shake 0.28s linear;
+      }
+      @keyframes shake {
+        0% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-2px);
+        }
+        50% {
+          transform: translateX(2px);
+        }
+        75% {
+          transform: translateX(-2px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+
+      /* Cột từ khóa dọc (guide) — làm nổi bật hơn */
+      .surpriseCol {
+        position: absolute;
+        inset: 8px auto 8px auto;
+        width: var(--size);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 213, 74, 0.18),
+          rgba(255, 213, 74, 0.08)
+        );
+        border-left: 2px dashed rgba(255, 213, 74, 0.7);
+        border-right: 2px dashed rgba(255, 213, 74, 0.7);
+        pointer-events: none;
+        mix-blend-mode: screen;
+        border-radius: 8px;
+        box-shadow:
+          0 0 12px rgba(255, 213, 74, 0.25),
+          inset 0 0 14px rgba(255, 236, 158, 0.22);
+        animation: kwGlow 2.8s ease-in-out infinite;
+      }
+
+      /* Ô thuộc cột từ khóa — NỔI BẬT HƠN (chỉ CSS, không đổi cơ chế) */
+      .cell.keywordCol {
+        background:
+          radial-gradient(
+            140% 120% at 50% -30%,
+            rgba(255, 244, 184, 0.35),
+            transparent 60%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(255, 217, 120, 0.25),
+            rgba(255, 217, 120, 0.05)
+          ),
+          repeating-linear-gradient(
+            45deg,
+            rgba(255, 236, 158, 0.2) 0 6px,
+            rgba(255, 236, 158, 0.05) 6px 12px
+          ),
+          var(--cell);
+        border-color: var(--kw2);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 236, 158, 0.35),
+          0 0 0 1px rgba(255, 205, 74, 0.28),
+          0 8px 22px rgba(255, 213, 74, 0.16);
+        position: relative;
+        isolation: isolate;
+        animation: kwGlow 2.8s ease-in-out infinite;
+      }
+      .cell.keywordCol::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.16),
+          transparent
+        );
+        transform: translateX(-120%);
+        animation: sweep 2.6s ease-in-out infinite;
+        pointer-events: none;
+      }
+      .cell.keywordCol::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.18),
+          transparent 60%
+        );
+        mix-blend-mode: screen;
+        pointer-events: none;
+      }
+      @keyframes sweep {
+        0% {
+          transform: translateX(-130%);
+        }
+        50%,
+        100% {
+          transform: translateX(130%);
+        }
+      }
+      @keyframes kwGlow {
+        0%,
+        100% {
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 236, 158, 0.35),
+            0 0 0 1px rgba(255, 205, 74, 0.28),
+            0 6px 18px rgba(255, 213, 74, 0.14);
+        }
+        50% {
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 236, 158, 0.48),
+            0 0 0 1px rgba(255, 205, 74, 0.38),
+            0 10px 26px rgba(255, 213, 74, 0.22);
+        }
+      }
+      .cell.keywordCol:focus-within {
+        border-color: var(--gold2);
+        box-shadow:
+          0 0 0 2px rgba(255, 236, 158, 0.45) inset,
+          0 12px 26px rgba(255, 213, 74, 0.22);
+        background:
+          radial-gradient(
+            160% 140% at 50% -40%,
+            rgba(255, 244, 184, 0.45),
+            transparent 60%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(255, 217, 120, 0.32),
+            rgba(255, 217, 120, 0.08)
+          ),
+          repeating-linear-gradient(
+            45deg,
+            rgba(255, 236, 158, 0.25) 0 6px,
+            rgba(255, 236, 158, 0.06) 6px 12px
+          ),
+          var(--cell);
+      }
+
+      .cell.keywordCol.correct {
+        background:
+          radial-gradient(
+            140% 120% at 50% -30%,
+            rgba(255, 247, 189, 0.55),
+            transparent 62%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(255, 233, 128, 0.42),
+            rgba(255, 217, 120, 0.12)
+          ),
+          repeating-linear-gradient(
+            45deg,
+            rgba(255, 255, 200, 0.32) 0 6px,
+            rgba(255, 233, 140, 0.1) 6px 12px
+          ),
+          var(--cell);
+        border-color: var(--good);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 200, 0.45),
+          0 0 0 1px rgba(43, 217, 153, 0.35),
+          0 10px 28px rgba(255, 220, 120, 0.24),
+          0 0 22px rgba(43, 217, 153, 0.22);
+        animation: kwWinPulse 1.6s ease-in-out infinite;
+      }
+      .cell.keywordCol.correct input {
+        color: #1b1700;
+        text-shadow: 0 0 1px rgba(255, 255, 255, 0.35);
+      }
+      .cell.keywordCol.correct::after {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.24),
+          transparent
+        );
+        animation: sweepFast 1.8s ease-in-out infinite;
+      }
+      .cell.keywordCol.correct::before {
+        background:
+          radial-gradient(
+            60% 60% at 50% 0%,
+            rgba(255, 255, 220, 0.45),
+            transparent 70%
+          ),
+          linear-gradient(180deg, rgba(43, 217, 153, 0.18), transparent 60%);
+        mix-blend-mode: screen;
+      }
+      @keyframes sweepFast {
+        0% {
+          transform: translateX(-140%);
+        }
+        50%,
+        100% {
+          transform: translateX(140%);
+        }
+      }
+      @keyframes kwWinPulse {
+        0%,
+        100% {
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 200, 0.45),
+            0 0 0 1px rgba(43, 217, 153, 0.35),
+            0 8px 22px rgba(255, 220, 120, 0.2),
+            0 0 18px rgba(43, 217, 153, 0.16);
+        }
+        50% {
+          box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 220, 0.65),
+            0 0 0 1px rgba(43, 217, 153, 0.55),
+            0 14px 32px rgba(255, 220, 120, 0.32),
+            0 0 28px rgba(43, 217, 153, 0.28);
+        }
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        gap: 10px;
+      }
+      .timer {
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        font-size: 12px;
+      }
+      .progress {
+        height: 8px;
+        background: #1c1f3b;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent-2), var(--good));
+      }
+      .pill {
+        font-size: 11px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--pill);
+        white-space: nowrap;
+      }
+
+      aside.clues.card {
+        width: 100%;
+        max-width: 300px;
+      }
+      .clues header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .pager {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btnpair {
+        display: flex;
+        gap: 8px;
+      }
+      .index {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        max-width: 300px;
+      }
+      .dotbtn {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #261f44;
+        border: 1px solid #3f3266;
+        color: var(--ink);
+        font-weight: 800;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .dotbtn[aria-current="true"] {
+        background: linear-gradient(180deg, var(--accent), #e18bb6);
+        color: #2a0f24;
+        border-color: #ffd6ea;
+        box-shadow: 0 4px 14px rgba(255, 179, 209, 0.35);
+      }
+      .clueSlide {
+        margin-top: 8px;
+        padding: 10px;
+        border: 1px dashed #4a3a70;
+        border-radius: 12px;
+        background: #171335;
+        cursor: pointer;
+      }
+      .meta {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 11px;
+        flex-wrap: wrap;
+      }
+      .meta .tag {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #201943;
+      }
+      .text {
+        font-size: 13px;
+        line-height: 1.34;
+        margin-top: 6px;
+      }
+      .slideNav {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-start;
+        margin-top: 8px;
+        flex-wrap: wrap;
+      }
+      .slideNav .btn {
+        min-width: 0;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(12, 8, 20, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+      }
+      .modal.show {
+        display: flex;
+      }
+      .sheet {
+        width: min(720px, 92%);
+        background: #16123a;
+        border: 1px solid #4a3a70;
+        border-radius: 16px;
+        padding: 12px;
+      }
+      .sheet h3 {
+        margin: 0 0 8px;
+        text-align: center;
+      }
+      .closeX {
+        float: right;
+      }
+      .confetti {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 25;
+      }
+      .dot {
+        position: absolute;
+        font-size: 18px;
+        opacity: 0.9;
+        animation: fall 1.7s linear forwards;
+      }
+      @keyframes fall {
+        to {
+          transform: translateY(110vh) rotate(340deg);
+          opacity: 0.95;
+        }
+      }
+      .message {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 8px 6px 2px;
+        line-height: 1.6;
+        font-size: 15px;
+      }
+      .message .hero {
+        text-align: center;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .message .lead {
+        font-size: 16px;
+        line-height: 1.65;
+        margin-bottom: 8px;
+      }
+      .message p {
+        margin: 8px 0 0;
+        text-align: left;
+      }
+      .message .signature {
+        text-align: right;
+        font-style: italic;
+        margin-top: 8px;
+      }
+      .message .divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #e7c4ff40, transparent);
+        margin: 6px auto 8px;
+        width: 88%;
+        border-radius: 999px;
+      }
+      .messageBox {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0)
+        );
+        border: 1px solid #4a3a70;
+        border-radius: 12px;
+        padding: 12px 14px;
+        box-shadow: inset 0 8px 22px rgba(0, 0, 0, 0.25);
+      }
+      .hidden {
+        display: none !important;
+      }
+      .setupCard {
+        width: min(1200px, 100%);
+      }
+      .setupHead {
+        margin-bottom: 10px;
+      }
+      .setupRows {
+        display: grid;
+        gap: 8px;
+        max-height: 56vh;
+        overflow: auto;
+        padding-right: 4px;
+      }
+      .setupRow {
+        border: 1px solid #4a3a70;
+        border-radius: 12px;
+        padding: 10px;
+        background: #151133;
+        display: grid;
+        gap: 8px;
+      }
+      .setupRowTop {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .setupRowTitle {
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .setupGrid {
+        display: grid;
+        grid-template-columns: 1fr 220px 140px;
+        gap: 8px;
+      }
+      .setupField {
+        display: grid;
+        gap: 4px;
+      }
+      .setupField label {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .setupField input {
+        border: 1px solid var(--line);
+        background: #241c41;
+        color: var(--ink);
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        width: 100%;
+      }
+      .setupField textarea {
+        border: 1px solid var(--line);
+        background: #241c41;
+        color: var(--ink);
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        width: 100%;
+        min-height: 96px;
+        resize: vertical;
+      }
+      .setupField select {
+        border: 1px solid var(--line);
+        background: #241c41;
+        color: var(--ink);
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        width: 100%;
+      }
+      .setupPopup {
+        margin-bottom: 10px;
+        grid-template-columns: 1fr 1.4fr;
+      }
+      .setupHint {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .setupError {
+        color: #ff9da6;
+      }
+      .setupOk {
+        color: #9af4ce;
+      }
+      .popupText {
+        white-space: pre-line;
+      }
+      @media (max-width: 860px) {
+        .setupGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="card setupCard" id="setupCard">
+      <div class="setupHead">
+        <h2 style="margin: 0 0 6px; font-size: 18px">Thiết lập trò chơi</h2>
+        <div class="sub">
+          Mỗi khối là một hàng ngang: nhập <strong>gợi ý</strong>,
+          <strong>đáp án</strong> và <strong>vị trí ký tự giao cột dọc</strong>
+          (đánh số từ 1).
+        </div>
+      </div>
+      <div
+        class="setupGrid"
+        style="margin-bottom: 10px; grid-template-columns: 260px 1fr"
+      >
+        <div class="setupField">
+          <label>Tên game</label>
+          <input
+            id="setupGameTitle"
+            type="text"
+            placeholder="Ví dụ: Vòng quay ô chữ"
+          />
+        </div>
+        <div class="setupField">
+          <label>Mô tả nhỏ dưới tiêu đề game</label>
+          <input
+            id="setupGameSubtitle"
+            type="text"
+            placeholder="Ví dụ: Chủ đề lịch sử • Điền chữ KHÔNG dấu, KHÔNG cách."
+          />
+        </div>
+      </div>
+      <div class="setupGrid setupPopup">
+        <div class="setupField">
+          <label>Tiêu đề popup khi hoàn thành</label>
+          <input
+            id="setupPopupTitle"
+            type="text"
+            placeholder="Ví dụ: 🎉 Chúc mừng!"
+          />
+        </div>
+        <div class="setupField">
+          <label>Nội dung popup khi hoàn thành</label>
+          <textarea
+            id="setupPopupBody"
+            placeholder="Nhập nội dung lời chúc (xuống dòng được)"
+          ></textarea>
+        </div>
+      </div>
+      <div
+        class="setupGrid"
+        style="margin-bottom: 10px; grid-template-columns: 260px 1fr"
+      >
+        <div class="setupField">
+          <label>Tông màu game</label>
+          <select id="setupThemeSelect">
+            <option value="rose">Hồng lễ hội</option>
+            <option value="ocean">Biển xanh</option>
+            <option value="forest">Rừng xanh</option>
+            <option value="sunset">Hoàng hôn</option>
+            <option value="midnight">Đêm tối</option>
+            <option value="lavender">Tím oải hương</option>
+            <option value="mint">Bạc hà</option>
+            <option value="sand">Cát vàng</option>
+            <option value="ruby">Đỏ ruby</option>
+            <option value="slate">Xám slate</option>
+          </select>
+        </div>
+        <div class="setupHint" style="align-self: end">
+          Chọn tông màu phù hợp chủ đề trước khi bắt đầu chơi.
+        </div>
+      </div>
+      <div class="setupRows" id="setupRows"></div>
+      <div class="controls" style="margin-top: 10px">
+        <button id="addRowBtn">+ Thêm hàng</button>
+        <button id="loadSampleBtn" class="rose">Dùng dữ liệu mẫu 20/10</button>
+        <button id="clearAllSetupBtn" class="bad">Xóa toàn bộ dữ liệu</button>
+        <button id="startGameBtn" class="primary">Bắt đầu chơi</button>
+      </div>
+      <div id="setupMsg" class="setupHint" style="margin-top: 8px"></div>
+    </section>
+
+    <button
+      id="musicToggleBtn"
+      class="music musicFloat"
+      aria-pressed="true"
+      title="Bật hoặc tắt nhạc nền"
+    >
+      Tắt nhạc
+    </button>
+
+    <div class="app hidden" id="gameApp">
+      <section class="card" id="leftCard">
+        <header>
+          <div>
+            <h1 id="gameTitle">Crossword 20/10</h1>
+            <div class="sub" id="gameSubtitle">
+              Chủ đề 20/10 • Điền chữ KHÔNG dấu, KHÔNG cách.
+            </div>
+          </div>
+          <div class="controls">
+            <button id="editSetupBtn">Thiết lập game</button>
+            <button
+              id="keywordModeBtn"
+              class="rose"
+              aria-pressed="false"
+              title="Bật chế độ nhập theo cột từ khóa dọc"
+            >
+              Nhập từ khóa dọc
+            </button>
+            <button id="checkBtn" class="primary">Kiểm tra (Enter)</button>
+            <button id="resetBtn" class="bad">Chơi lại</button>
+          </div>
+        </header>
+
+        <div class="gridWrap">
+          <div id="rowLabels" class="rowLabels" aria-hidden="true"></div>
+          <div
+            id="grid"
+            class="grid"
+            role="grid"
+            aria-label="Bảng ô chữ 20/10"
+          ></div>
+        </div>
+
+        <div class="footer">
+          <div class="timer" id="timer">00:00</div>
+          <div style="flex: 1; margin: 0 8px">
+            <div class="progress"><div class="bar" id="bar"></div></div>
+            <div class="sub">Điều hướng: mũi tên, Backspace, Enter.</div>
+          </div>
+          <div class="pill" id="statusPill">0/0 hàng đúng</div>
+        </div>
+      </section>
+
+      <aside class="card clues" aria-label="Gợi ý">
+        <header>
+          <div>
+            <h2 style="margin: 0 0 6px; font-size: 16px">Gợi ý hàng ngang</h2>
+            <div class="sub">
+              Cột vàng dọc ghép thành <strong>từ bí mật</strong> 💝.
+            </div>
+          </div>
+          <div class="pager">
+            <div class="btnpair">
+              <button class="btn" id="prevSlide" aria-label="Gợi ý trước">
+                ⟨ Trước
+              </button>
+              <button class="btn" id="nextSlide" aria-label="Gợi ý sau">
+                Sau ⟩
+              </button>
+            </div>
+            <div class="index" id="pagerDots" aria-label="Trang gợi ý"></div>
+          </div>
+        </header>
+
+        <div
+          id="clueSlide"
+          class="clueSlide"
+          role="region"
+          aria-live="polite"
+          title="Bấm để nhảy đến hàng này"
+        ></div>
+
+        <div class="slideNav">
+          <button class="btn" id="jumpToRow">Tới ô hàng này</button>
+          <button class="btn rose" id="hintThis">Gợi ý (tiến dần)</button>
+          <button class="btn" id="revealThis">Hiển thị nhanh</button>
+          <button class="btn bad" id="clearThis">Xóa nhanh</button>
+        </div>
+      </aside>
+    </div>
+
+    <div
+      id="modal"
+      class="modal"
+      aria-hidden="true"
+      aria-label="Kết quả & thông tin 20/10"
+    >
+      <div class="sheet">
+        <button class="btn closeX" id="closeModal">Đóng</button>
+        <h3 id="modalTitle">🎉 Chúc mừng!</h3>
+        <div id="modalBody" class="message messageBox popupText"></div>
+      </div>
+    </div>
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+
+    <!-- ====== ÂM THANH (chỉ thêm thẻ audio, không đổi cơ chế/text) ====== -->
+    <!-- Đổi đường dẫn 3 file mp3 ngay tại đây cho phù hợp dự án của bạn -->
+    <audio id="bgm" src="bgm.mp3" preload="auto" loop></audio>
+    <audio id="sfxOk" src="correct.mp3" preload="auto"></audio>
+    <audio id="sfxBad" src="wrong.mp3" preload="auto"></audio>
+    <!-- ================================================================ -->
+    <script>
+      const fold = (s) =>
+        (s || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/gi, "d");
+      const normalizeAnswer = (s) =>
+        fold(s)
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "");
+
+      const DEFAULT_WORDS = [
+        {
+          answer: "HOILIENHIEPPHUNU",
+          crossIndex: 10,
+          vi: "💐 _________ là tổ chức chính trị-xã hội đại diện cho quyền và lợi ích hợp pháp, chính đáng, thúc đẩy sự bình đẳng và phát triển toàn diện của phụ nữ. (16 ô).",
+        },
+        {
+          answer: "TRUYENTHONG",
+          crossIndex: 7,
+          vi: "👗  Phụ nữ Việt Nam nổi tiếng với tà áo dài, biểu tượng của nét đẹp _________ và sự dịu dàng. (11 ô)",
+        },
+        {
+          answer: "ANHHUNG",
+          crossIndex: 4,
+          vi: "🧵 Trong lịch sử, phụ nữ Việt Nam luôn gắn liền với hình ảnh “_________, bất khuất, trung hậu, đảm đang”,  đây là 8 chữ vàng Bác Hồ trao tặng, bức trướng thêu tám chữ vàng được Bác Hồ gửi tặng vào ngày 8 tháng 3 năm 1965, nhân kỷ niệm 55 năm Ngày Quốc tế Phụ nữ. (7 ô)",
+        },
+        {
+          answer: "HAIBATRUNG",
+          crossIndex: 8,
+          vi: "🪶 _________ là biểu tượng đầu tiên cho tinh thần đấu tranh của phụ nữ Việt. Hai bà là những người đứng đầu các cuộc khởi nghĩa chống ách đô hộ những năm 40 - 43. (10 ô)",
+        },
+        {
+          answer: "NGAYPHUNUVIETNAM",
+          crossIndex: 6,
+          vi: "📅 Ngày 20/10 hàng năm được chọn làm ________, tôn vinh vai trò, đóng góp của phụ nữ.",
+        },
+        {
+          answer: "VANHOC",
+          crossIndex: 0,
+          vi: "🪔 Trong lĩnh vực _________, hình ảnh người phụ nữ được ca ngợi qua các tác phẩm như Truyện Kiều, Vợ nhặt, Vợ chồng A Phủ… (6 ô)",
+        },
+        {
+          answer: "KHANGCHIEN",
+          crossIndex: 7,
+          vi: "🧡 Phụ nữ Việt Nam là những người đầu tiên khởi xướng phong trào “Ba đảm đang” trong _________ chống mỹ: đảm việc nước, việc nhà, và chăm lo hậu phương. (10 ô)",
+        },
+        {
+          answer: "NGUYENTHIBINH",
+          crossIndex: 4,
+          vi: "🕊️ Bà _________  là nữ Bộ trưởng Ngoại giao đầu tiên của Việt Nam và là người phụ nữ duy nhất ký Hiệp định Paris năm 1973.",
+        },
+        {
+          answer: "BAMEVIETNAMANHHUNG",
+          crossIndex: 7,
+          vi: "🧕 _________ là danh hiệu tôn vinh những người mẹ đã hi sinh con, chồng, bản thân cho độc lập dân tộc.",
+        },
+        {
+          answer: "NGUOIME",
+          crossIndex: 0,
+          vi: "🕯️Hình tượng _________ trong văn học và phim Việt luôn là nguồn cảm hứng bất tận, biểu trưng tình thương, đức hi sinh. (7 ô)",
+        },
+        {
+          answer: "HOXUANHUONG",
+          crossIndex: 4,
+          vi: "🪶 Nữ sĩ _________  còn được gọi là “Bà chúa thơ Nôm”, bà được UNESCO vinh danh là Danh nhân văn hóa thế giới năm 2022. (11 ô)",
+        },
+        {
+          answer: "MAMNON",
+          crossIndex: 0,
+          vi: "🎓 Giáo dục _______ là một lĩnh vực đòi hỏi sự thấu cảm, tính kiên trì, yêu thương trẻ nhỏ, tại Việt Nam phụ nữ luôn là lực lượng chủ đạo của ngành này. (6 ô)",
+        },
+      ];
+      const DEFAULT_POPUP = {
+        title: "🎉 Chúc mừng!",
+        body: "Bạn đã hoàn thành trò chơi.\nCảm ơn bạn đã tham gia!",
+      };
+      const DEFAULT_GAME_META = {
+        title: "Crossword 20/10",
+        subtitle: "Chủ đề 20/10 • Điền chữ KHÔNG dấu, KHÔNG cách.",
+      };
+      const SAMPLE_GAME_META = {
+        title: "Crossword 20/10",
+        subtitle: "Chủ đề 20/10 • Điền chữ KHÔNG dấu, KHÔNG cách.",
+      };
+      const SAMPLE_POPUP = {
+        title: "💐 Chúc mừng ngày 20/10 💐",
+        body:
+          "🌸 Gửi các cô gái dễ thương lớp 10CA2! 🌸\n" +
+          "Nhân ngày Phụ nữ Việt Nam 20/10, chúc các em luôn xinh đẹp, tự tin và rạng rỡ.\n" +
+          "Hãy luôn yêu thương, sẻ chia và lan tỏa năng lượng tích cực nhé! ✨\n" +
+          "Thân mến,\nNhóm thầy cô kiến tập 👩‍🏫👨‍🏫",
+      };
+      const THEME_PRESETS = {
+        rose: {
+          "--bg1": "#2a153b",
+          "--bg2": "#0c0f24",
+          "--muted": "#c7b6d9",
+          "--accent": "#ffb3d1",
+          "--accent-2": "#ffd54a",
+          "--line": "#3b2d58",
+          "--cell": "#1a1f3a",
+          "--cellFocus": "#242c57",
+          "--black": "#0d0a1a",
+          "--pill": "#1f1a36",
+          "--rose1": "#ff6fb7",
+          "--gold1": "#ffd54a",
+          "--gold2": "#ffec9e",
+        },
+        ocean: {
+          "--bg1": "#10324a",
+          "--bg2": "#071a2b",
+          "--muted": "#a7c7de",
+          "--accent": "#7fd2ff",
+          "--accent-2": "#5ce0c2",
+          "--line": "#2b5873",
+          "--cell": "#10253f",
+          "--cellFocus": "#163558",
+          "--black": "#07101d",
+          "--pill": "#10223a",
+          "--rose1": "#57b9ff",
+          "--gold1": "#5ce0c2",
+          "--gold2": "#b0fff0",
+        },
+        forest: {
+          "--bg1": "#14341f",
+          "--bg2": "#0a1c12",
+          "--muted": "#b9d2bf",
+          "--accent": "#8bd676",
+          "--accent-2": "#d6c66b",
+          "--line": "#345a40",
+          "--cell": "#152b1c",
+          "--cellFocus": "#1c3926",
+          "--black": "#0b140d",
+          "--pill": "#1b2f20",
+          "--rose1": "#7bcf84",
+          "--gold1": "#d6c66b",
+          "--gold2": "#f3e6a5",
+        },
+        sunset: {
+          "--bg1": "#4a1f1f",
+          "--bg2": "#23101c",
+          "--muted": "#e0bdb0",
+          "--accent": "#ff9f7a",
+          "--accent-2": "#ffd36a",
+          "--line": "#6a3f45",
+          "--cell": "#3a1c2b",
+          "--cellFocus": "#52253a",
+          "--black": "#1a0c12",
+          "--pill": "#3a1c2b",
+          "--rose1": "#ff8b6b",
+          "--gold1": "#ffd36a",
+          "--gold2": "#ffebb3",
+        },
+        midnight: {
+          "--bg1": "#121a36",
+          "--bg2": "#070b1a",
+          "--muted": "#aeb7d7",
+          "--accent": "#8ea7ff",
+          "--accent-2": "#69d4ff",
+          "--line": "#2c3f71",
+          "--cell": "#111a33",
+          "--cellFocus": "#1a2850",
+          "--black": "#070b14",
+          "--pill": "#141e3a",
+          "--rose1": "#7f93ff",
+          "--gold1": "#69d4ff",
+          "--gold2": "#bdefff",
+        },
+        lavender: {
+          "--bg1": "#35224f",
+          "--bg2": "#171028",
+          "--muted": "#d1c2e4",
+          "--accent": "#c5a8ff",
+          "--accent-2": "#ffd98a",
+          "--line": "#584275",
+          "--cell": "#2b1e41",
+          "--cellFocus": "#3a2b57",
+          "--black": "#120d1d",
+          "--pill": "#2a1f3d",
+          "--rose1": "#b389ff",
+          "--gold1": "#ffd98a",
+          "--gold2": "#ffefbd",
+        },
+        mint: {
+          "--bg1": "#143a33",
+          "--bg2": "#08211d",
+          "--muted": "#b8ddd4",
+          "--accent": "#7fe3c8",
+          "--accent-2": "#ffe07f",
+          "--line": "#2f6658",
+          "--cell": "#103129",
+          "--cellFocus": "#17463a",
+          "--black": "#071713",
+          "--pill": "#12342c",
+          "--rose1": "#6ad9b8",
+          "--gold1": "#ffe07f",
+          "--gold2": "#fff2ba",
+        },
+        sand: {
+          "--bg1": "#4b3a25",
+          "--bg2": "#20170f",
+          "--muted": "#decfb5",
+          "--accent": "#f2c47c",
+          "--accent-2": "#ffe49a",
+          "--line": "#745a38",
+          "--cell": "#3a2a1b",
+          "--cellFocus": "#4f3a24",
+          "--black": "#1a120a",
+          "--pill": "#3b2b1d",
+          "--rose1": "#f0b86f",
+          "--gold1": "#ffe49a",
+          "--gold2": "#fff4c8",
+        },
+        ruby: {
+          "--bg1": "#4a1626",
+          "--bg2": "#1f0a13",
+          "--muted": "#e2bac7",
+          "--accent": "#ff8fb1",
+          "--accent-2": "#ffd08a",
+          "--line": "#734055",
+          "--cell": "#381626",
+          "--cellFocus": "#4c2033",
+          "--black": "#190810",
+          "--pill": "#3a1828",
+          "--rose1": "#ff7099",
+          "--gold1": "#ffd08a",
+          "--gold2": "#ffe9bc",
+        },
+        slate: {
+          "--bg1": "#263145",
+          "--bg2": "#101723",
+          "--muted": "#c0cada",
+          "--accent": "#9fb5d9",
+          "--accent-2": "#8fd3c1",
+          "--line": "#42566f",
+          "--cell": "#1f2a3b",
+          "--cellFocus": "#2a3850",
+          "--black": "#0c121b",
+          "--pill": "#202d40",
+          "--rose1": "#90a9d4",
+          "--gold1": "#8fd3c1",
+          "--gold2": "#c8f0e5",
+        },
+      };
+      const SETUP_DRAFT_KEY = "crossword_setup_draft_v1";
+
+      let ROWS = 0;
+      let COLS = 0;
+      let SURPRISE_COL = 0;
+      let WORDS = [];
+      let KEYWORD_ANSWER = "";
+      let WIN_POPUP = { ...DEFAULT_POPUP };
+      let GAME_META = { ...DEFAULT_GAME_META };
+      let currentTheme = "rose";
+      let grid = [];
+      let cells = [];
+      let hintProgress = [];
+      let hintKeywordProgress = 0;
+      let startTime = Date.now();
+      let currentSlide = 0;
+      let keywordMode = false;
+      let enterCheckRow = null;
+      let gameReady = false;
+
+      const setupCard = document.getElementById("setupCard");
+      const gameApp = document.getElementById("gameApp");
+      const setupRowsEl = document.getElementById("setupRows");
+      const setupMsgEl = document.getElementById("setupMsg");
+      const setupGameTitleEl = document.getElementById("setupGameTitle");
+      const setupGameSubtitleEl = document.getElementById("setupGameSubtitle");
+      const setupPopupTitleEl = document.getElementById("setupPopupTitle");
+      const setupPopupBodyEl = document.getElementById("setupPopupBody");
+      const setupThemeSelectEl = document.getElementById("setupThemeSelect");
+      const gameTitleEl = document.getElementById("gameTitle");
+      const gameSubtitleEl = document.getElementById("gameSubtitle");
+      const leftCardEl = document.getElementById("leftCard");
+      const gridEl = document.getElementById("grid");
+      const labelsEl = document.getElementById("rowLabels");
+      const barEl = document.getElementById("bar");
+      const statusPill = document.getElementById("statusPill");
+      const clueSlideEl = document.getElementById("clueSlide");
+      const pagerDotsEl = document.getElementById("pagerDots");
+      const keywordModeBtn = document.getElementById("keywordModeBtn");
+      const musicToggleBtn = document.getElementById("musicToggleBtn");
+      const timerEl = document.getElementById("timer");
+      const modalTitleEl = document.getElementById("modalTitle");
+      const modalBodyEl = document.getElementById("modalBody");
+
+      const bgm = document.getElementById("bgm");
+      const sfxOk = document.getElementById("sfxOk");
+      const sfxBad = document.getElementById("sfxBad");
+      bgm.volume = 0.35;
+      sfxOk.volume = 0.6;
+      sfxBad.volume = 0.6;
+      let musicEnabled = true;
+
+      function setMusicEnabled(on) {
+        musicEnabled = !!on;
+        musicToggleBtn.setAttribute(
+          "aria-pressed",
+          musicEnabled ? "true" : "false",
+        );
+        musicToggleBtn.textContent = musicEnabled ? "Tắt nhạc" : "Bật nhạc";
+        if (!musicEnabled) {
+          bgm.pause();
+          return;
+        }
+        if (audioArmed) bgm.play().catch(() => {});
+      }
+
+      let audioArmed = false;
+      function armAudioOnce() {
+        if (audioArmed) return;
+        audioArmed = true;
+        if (musicEnabled) bgm.play().catch(() => {});
+        document.removeEventListener("pointerdown", armAudioOnce);
+        document.removeEventListener("keydown", armAudioOnce);
+      }
+      document.addEventListener("pointerdown", armAudioOnce, { once: true });
+      document.addEventListener("keydown", armAudioOnce, { once: true });
+
+      function playOk() {
+        try {
+          sfxOk.currentTime = 0;
+          sfxOk.play().catch(() => {});
+        } catch (e) {}
+      }
+      function playBad() {
+        try {
+          sfxBad.currentTime = 0;
+          sfxBad.play().catch(() => {});
+        } catch (e) {}
+      }
+
+      function setSetupMessage(msg, type = "") {
+        setupMsgEl.textContent = msg || "";
+        setupMsgEl.classList.remove("setupError", "setupOk");
+        if (type) setupMsgEl.classList.add(type);
+      }
+
+      function applyTheme(themeKey) {
+        const key = THEME_PRESETS[themeKey] ? themeKey : "rose";
+        const vars = THEME_PRESETS[key];
+        Object.entries(vars).forEach(([name, value]) => {
+          document.documentElement.style.setProperty(name, value);
+        });
+        currentTheme = key;
+        setupThemeSelectEl.value = key;
+      }
+
+      function getPopupFromSetupForm() {
+        return {
+          title: (setupPopupTitleEl.value || "").trim(),
+          body: (setupPopupBodyEl.value || "").trim(),
+        };
+      }
+
+      function getGameMetaFromSetupForm() {
+        return {
+          title: (setupGameTitleEl.value || "").trim(),
+          subtitle: (setupGameSubtitleEl.value || "").trim(),
+        };
+      }
+
+      function setPopupToSetupForm(popup) {
+        const src = popup || DEFAULT_POPUP;
+        setupPopupTitleEl.value = src.title || "";
+        setupPopupBodyEl.value = src.body || "";
+      }
+
+      function setGameMetaToSetupForm(meta) {
+        const src = meta || DEFAULT_GAME_META;
+        setupGameTitleEl.value = src.title || "";
+        setupGameSubtitleEl.value = src.subtitle || "";
+      }
+
+      function normalizePopup(popup) {
+        const src = popup || {};
+        const title = (src.title || "").trim() || DEFAULT_POPUP.title;
+        const body = (src.body || "").trim() || DEFAULT_POPUP.body;
+        return { title, body };
+      }
+
+      function normalizeGameMeta(meta) {
+        const src = meta || {};
+        const title = (src.title || "").trim() || DEFAULT_GAME_META.title;
+        const subtitle =
+          (src.subtitle || "").trim() || DEFAULT_GAME_META.subtitle;
+        return { title, subtitle };
+      }
+
+      function renderGameMeta() {
+        const meta = normalizeGameMeta(GAME_META);
+        gameTitleEl.textContent = meta.title;
+        gameSubtitleEl.textContent = meta.subtitle;
+      }
+
+      function renderWinPopup() {
+        const popup = normalizePopup(WIN_POPUP);
+        modalTitleEl.textContent = popup.title;
+        modalBodyEl.textContent = popup.body;
+      }
+
+      function readSetupDraft() {
+        try {
+          const raw = localStorage.getItem(SETUP_DRAFT_KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          if (Array.isArray(data)) {
+            if (!data.length) return null;
+            return {
+              rows: data,
+              popup: { ...DEFAULT_POPUP },
+              theme: "rose",
+              meta: { ...DEFAULT_GAME_META },
+            };
+          }
+          if (!data || !Array.isArray(data.rows) || !data.rows.length)
+            return null;
+          return {
+            rows: data.rows,
+            popup: normalizePopup(data.popup),
+            theme: THEME_PRESETS[data.theme] ? data.theme : "rose",
+            meta: normalizeGameMeta(data.meta),
+          };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function writeSetupDraft() {
+        try {
+          const rows = [...setupRowsEl.querySelectorAll(".setupRow")].map(
+            (rowEl) => ({
+              vi: rowEl.querySelector(".setupClue").value || "",
+              answer: rowEl.querySelector(".setupAnswer").value || "",
+              crossPos: Math.max(
+                1,
+                Number(rowEl.querySelector(".setupCrossIndex").value) || 1,
+              ),
+            }),
+          );
+          if (!rows.length) return;
+          const payload = {
+            rows,
+            popup: getPopupFromSetupForm(),
+            theme: setupThemeSelectEl.value || "rose",
+            meta: getGameMetaFromSetupForm(),
+          };
+          localStorage.setItem(SETUP_DRAFT_KEY, JSON.stringify(payload));
+        } catch (e) {}
+      }
+
+      function clearSetupDraft() {
+        try {
+          localStorage.removeItem(SETUP_DRAFT_KEY);
+        } catch (e) {}
+      }
+
+      function refreshSetupRowMeta(rowEl, idx) {
+        const title = rowEl.querySelector(".setupRowTitle");
+        const answerInput = rowEl.querySelector(".setupAnswer");
+        const crossInput = rowEl.querySelector(".setupCrossIndex");
+        const crossChar = rowEl.querySelector(".setupCrossChar");
+        const answer = normalizeAnswer(answerInput.value);
+        const max = Math.max(1, answer.length);
+
+        title.textContent = `Hàng ${idx + 1}`;
+        crossInput.max = String(max);
+        crossInput.min = "1";
+        if (answer.length === 0) {
+          crossChar.textContent = "Chưa có";
+          return;
+        }
+        const ci = Number(crossInput.value); // 1-based
+        crossChar.textContent =
+          Number.isInteger(ci) && ci >= 1 && ci <= answer.length
+            ? answer[ci - 1]
+            : "Sai vị trí";
+      }
+
+      function refreshAllSetupRowMeta() {
+        [...setupRowsEl.querySelectorAll(".setupRow")].forEach((rowEl, idx) =>
+          refreshSetupRowMeta(rowEl, idx),
+        );
+      }
+
+      function createSetupRow(data = {}) {
+        const rowEl = document.createElement("div");
+        rowEl.className = "setupRow";
+        rowEl.innerHTML = `
+          <div class="setupRowTop">
+            <div class="setupRowTitle">Hàng</div>
+            <button class="bad removeSetupRow" type="button">Xóa</button>
+          </div>
+          <div class="setupGrid">
+            <div class="setupField">
+              <label>Gợi ý</label>
+              <input class="setupClue" type="text" placeholder="Nhập câu gợi ý" />
+            </div>
+            <div class="setupField">
+              <label>Đáp án (không dấu/cách)</label>
+              <input class="setupAnswer" type="text" placeholder="Ví dụ: HOILIENHIEPPHUNU" />
+            </div>
+            <div class="setupField">
+              <label>Vị trí ký tự cột dọc (bắt đầu từ 1)</label>
+              <input class="setupCrossIndex" type="number" min="1" step="1" value="1" />
+            </div>
+          </div>
+          <div class="setupHint">Ký tự giao cột dọc: <strong class="setupCrossChar">Chưa có</strong></div>
+        `;
+
+        const clueInput = rowEl.querySelector(".setupClue");
+        const answerInput = rowEl.querySelector(".setupAnswer");
+        const crossInput = rowEl.querySelector(".setupCrossIndex");
+        const removeBtn = rowEl.querySelector(".removeSetupRow");
+
+        clueInput.value = data.vi || "";
+        answerInput.value = data.answer || "";
+        if (Number.isInteger(data.crossPos)) crossInput.value = data.crossPos;
+        else if (Number.isInteger(data.crossIndex))
+          crossInput.value = data.crossIndex + 1;
+        else crossInput.value = 1;
+
+        const update = () => {
+          refreshAllSetupRowMeta();
+          writeSetupDraft();
+        };
+        clueInput.addEventListener("input", update);
+        answerInput.addEventListener("input", update);
+        crossInput.addEventListener("input", update);
+
+        removeBtn.addEventListener("click", () => {
+          if (setupRowsEl.children.length <= 1) {
+            setSetupMessage("Cần ít nhất 1 hàng để tạo game.", "setupError");
+            return;
+          }
+          rowEl.remove();
+          refreshAllSetupRowMeta();
+          writeSetupDraft();
+        });
+
+        return rowEl;
+      }
+
+      function loadSetupRows(rows) {
+        setupRowsEl.innerHTML = "";
+        rows.forEach((row) => setupRowsEl.appendChild(createSetupRow(row)));
+        refreshAllSetupRowMeta();
+        writeSetupDraft();
+      }
+
+      function collectSetupWords() {
+        const rows = [...setupRowsEl.querySelectorAll(".setupRow")];
+        if (rows.length === 0) throw new Error("Bạn chưa thêm hàng nào.");
+
+        const words = rows.map((rowEl, idx) => {
+          const vi = rowEl.querySelector(".setupClue").value.trim();
+          const answerRaw = rowEl.querySelector(".setupAnswer").value;
+          const answer = normalizeAnswer(answerRaw);
+          const crossPos = Number(
+            rowEl.querySelector(".setupCrossIndex").value,
+          ); // 1-based
+
+          if (!vi) throw new Error(`Hàng ${idx + 1}: chưa nhập gợi ý.`);
+          if (!answer)
+            throw new Error(`Hàng ${idx + 1}: đáp án rỗng hoặc không hợp lệ.`);
+          if (!Number.isInteger(crossPos))
+            throw new Error(`Hàng ${idx + 1}: vị trí ký tự phải là số nguyên.`);
+          if (crossPos < 1 || crossPos > answer.length) {
+            throw new Error(
+              `Hàng ${idx + 1}: vị trí ký tự phải trong khoảng 1..${answer.length}.`,
+            );
+          }
+
+          const crossIndex = crossPos - 1; // internal 0-based
+          return { key: idx + 1, vi, answer, crossIndex };
+        });
+
+        return words;
+      }
+
+      function applyConfig(words, popup, theme, meta) {
+        WORDS = words.map((w, idx) => ({ ...w, key: idx + 1 }));
+        ROWS = WORDS.length;
+        SURPRISE_COL = Math.max(...WORDS.map((w) => w.crossIndex));
+
+        let maxRight = 0;
+        WORDS.forEach((w) => {
+          const startCol = SURPRISE_COL - w.crossIndex;
+          maxRight = Math.max(maxRight, startCol + w.answer.length - 1);
+        });
+        COLS = Math.max(1, maxRight + 1);
+
+        KEYWORD_ANSWER = WORDS.map((w) => w.answer[w.crossIndex] || "").join(
+          "",
+        );
+        WIN_POPUP = normalizePopup(popup);
+        GAME_META = normalizeGameMeta(meta);
+        applyTheme(theme || setupThemeSelectEl.value || "rose");
+        renderGameMeta();
+        renderWinPopup();
+        hintProgress = Array(ROWS).fill(0);
+        hintKeywordProgress = 0;
+        currentSlide = 0;
+      }
+
+      function layoutWords() {
+        grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        WORDS.forEach((w, rIndex) => {
+          const startCol = SURPRISE_COL - w.crossIndex;
+          for (let i = 0; i < w.answer.length; i++) {
+            const col = startCol + i;
+            grid[rIndex][col] = {
+              row: rIndex,
+              col,
+              expected: w.answer[i],
+              rowKey: w.key,
+            };
+          }
+        });
+      }
+
+      function buildRowLabels() {
+        labelsEl.innerHTML = "";
+        labelsEl.style.setProperty("--rows", ROWS);
+        for (let r = 0; r < ROWS; r++) {
+          const l = document.createElement("div");
+          l.className = "rowLbl";
+          l.textContent = WORDS[r].key;
+          l.addEventListener("click", () => {
+            setSlide(r);
+            focusRow(r);
+          });
+          labelsEl.appendChild(l);
+        }
+      }
+
+      function buildGrid() {
+        cells = [];
+        gridEl.innerHTML = "";
+        gridEl.style.setProperty("--cols", COLS);
+        gridEl.style.setProperty("--rows", ROWS);
+
+        const colGuide = document.createElement("div");
+        colGuide.className = "surpriseCol";
+        colGuide.id = "surpriseColGuide";
+        gridEl.appendChild(colGuide);
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const holder = document.createElement("div");
+            holder.className = "cell";
+            const data = grid[r][c];
+            if (!data) {
+              holder.classList.add("black");
+            } else {
+              if (c === SURPRISE_COL) holder.classList.add("keywordCol");
+              const inp = document.createElement("input");
+              inp.maxLength = 1;
+              inp.autocomplete = "off";
+              inp.autocapitalize = "characters";
+              inp.dataset.row = r;
+              inp.dataset.col = c;
+              inp.setAttribute("aria-label", `Ô hàng ${r + 1} cột ${c + 1}`);
+              inp.addEventListener("input", onType);
+              inp.addEventListener("keydown", onNav);
+              inp.addEventListener("focus", () => {
+                if (currentSlide !== r) setSlide(r);
+              });
+              holder.appendChild(inp);
+              cells.push(inp);
+            }
+            gridEl.appendChild(holder);
+          }
+        }
+      }
+
+      function renderSlide(i) {
+        if (!WORDS.length) {
+          clueSlideEl.innerHTML = `<div class="text">Chưa có dữ liệu.</div>`;
+          return;
+        }
+        const w = WORDS[i];
+        clueSlideEl.innerHTML = `<div class="meta">
+                               <span class="tag">Trang ${i + 1}/${WORDS.length}</span>
+                               <span class="tag">Hàng ${w.key}</span>
+                               <span class="tag">${w.answer.length} ô</span>
+                             </div>
+                             <div class="text"><strong>Gợi ý:</strong> ${w.vi}</div>`;
+        [...pagerDotsEl.children].forEach((btn, idx) =>
+          btn.setAttribute("aria-current", idx === i ? "true" : "false"),
+        );
+      }
+
+      function setSlide(i) {
+        if (!WORDS.length) return;
+        currentSlide = (i + WORDS.length) % WORDS.length;
+        renderSlide(currentSlide);
+      }
+
+      function buildPager() {
+        pagerDotsEl.innerHTML = "";
+        for (let i = 0; i < WORDS.length; i++) {
+          const b = document.createElement("button");
+          b.className = "dotbtn";
+          b.textContent = i + 1;
+          b.setAttribute("aria-label", `Trang gợi ý ${i + 1}`);
+          b.addEventListener("click", () => {
+            setSlide(i);
+            focusRow(i);
+          });
+          pagerDotsEl.appendChild(b);
+        }
+        setSlide(0);
+      }
+
+      function findRowBounds(row) {
+        if (row < 0 || row >= ROWS) return { left: null, right: null };
+        let left = null;
+        let right = null;
+        for (let c = 0; c < COLS; c++) {
+          if (grid[row][c]) {
+            left = c;
+            break;
+          }
+        }
+        for (let c = COLS - 1; c >= 0; c--) {
+          if (grid[row][c]) {
+            right = c;
+            break;
+          }
+        }
+        return { left, right };
+      }
+
+      function getCell(r, c) {
+        return document.querySelector(
+          `input[data-row="${r}"][data-col="${c}"]`,
+        );
+      }
+
+      function move(inp, dir, eraseBefore = false) {
+        const r = +inp.dataset.row;
+        const c = +inp.dataset.col;
+        const { left, right } = findRowBounds(r);
+        if (left == null || right == null) return;
+        let nc = c + (dir === "next" ? 1 : -1);
+        if (nc < left) nc = left;
+        if (nc > right) nc = right;
+        const next = getCell(r, nc);
+        if (eraseBefore && next) next.value = "";
+        next?.focus();
+      }
+
+      function step(r, c, dr, dc) {
+        let nr = r + dr;
+        let nc = c + dc;
+        while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+          if (grid[nr][nc]) {
+            getCell(nr, nc)?.focus();
+            return;
+          }
+          nr += dr;
+          nc += dc;
+        }
+      }
+
+      function moveKeyword(inp, dir, eraseBefore = false) {
+        const r = +inp.dataset.row;
+        const stepDir = dir === "next" ? 1 : -1;
+        let nr = r + stepDir;
+        while (nr >= 0 && nr < ROWS) {
+          if (grid[nr][SURPRISE_COL]) {
+            const next = getCell(nr, SURPRISE_COL);
+            if (eraseBefore && next) next.value = "";
+            next?.focus();
+            return;
+          }
+          nr += stepDir;
+        }
+        const stay = getCell(r, SURPRISE_COL);
+        if (eraseBefore && stay) stay.value = "";
+        stay?.focus();
+      }
+
+      function focusKeywordColumn(preferEmpty = true) {
+        let fallback = null;
+        for (let r = 0; r < ROWS; r++) {
+          if (!grid[r][SURPRISE_COL]) continue;
+          const cell = getCell(r, SURPRISE_COL);
+          if (!fallback) fallback = cell;
+          if (preferEmpty && cell && !cell.value) {
+            cell.focus();
+            return;
+          }
+        }
+        fallback?.focus();
+      }
+
+      function setKeywordMode(on) {
+        keywordMode = !!on;
+        keywordModeBtn.setAttribute(
+          "aria-pressed",
+          keywordMode ? "true" : "false",
+        );
+        keywordModeBtn.textContent = keywordMode
+          ? "Thoát nhập từ khóa"
+          : "Nhập từ khóa dọc";
+        if (keywordMode && gameReady) focusKeywordColumn(true);
+      }
+
+      function collectRow(row) {
+        const { left, right } = findRowBounds(row);
+        if (left == null || right == null)
+          return { range: [null, null], value: "" };
+        let s = "";
+        for (let c = left; c <= right; c++) {
+          const cell = getCell(row, c);
+          s += grid[row][c] ? cell?.value || " " : "";
+        }
+        return { range: [left, right], value: s };
+      }
+
+      function rowHasAnyInput(row, range) {
+        for (let c = range[0]; c <= range[1]; c++) {
+          const cell = getCell(row, c);
+          if (cell && cell.value) return true;
+        }
+        return false;
+      }
+
+      function checkKeywordColumn() {
+        if (!gameReady || !WORDS.length) return false;
+        let attempt = "";
+        let hasAnyInput = false;
+
+        for (let r = 0; r < ROWS; r++) {
+          if (!grid[r][SURPRISE_COL]) continue;
+          const cell = getCell(r, SURPRISE_COL);
+          if (!cell) continue;
+          const holder = cell.closest(".cell");
+          holder.classList.remove("wrong", "correct");
+          if (cell.value) hasAnyInput = true;
+          attempt += cell.value || " ";
+        }
+
+        const normAttempt = fold(attempt).replace(/\s/g, "").toUpperCase();
+        const ok =
+          normAttempt.length === KEYWORD_ANSWER.length &&
+          normAttempt === KEYWORD_ANSWER;
+
+        for (let r = 0; r < ROWS; r++) {
+          if (!grid[r][SURPRISE_COL]) continue;
+          const cell = getCell(r, SURPRISE_COL);
+          if (!cell) continue;
+          const holder = cell.closest(".cell");
+          holder.classList.remove("wrong", "correct");
+          if (cell.value) holder.classList.add(ok ? "correct" : "wrong");
+        }
+
+        if (ok) playOk();
+        else if (hasAnyInput) playBad();
+        return ok;
+      }
+
+      function checkAll() {
+        if (!gameReady) return;
+        let correctRows = 0;
+        let shouldPlayOk = false;
+        let shouldPlayBad = false;
+
+        for (let r = 0; r < ROWS; r++) {
+          const w = WORDS[r];
+          const { range, value } = collectRow(r);
+          if (range[0] == null) continue;
+
+          const attempt = fold(value).replace(/\s/g, "").toUpperCase();
+          const target = fold(w.answer).toUpperCase();
+          const ok = attempt.length === w.answer.length && attempt === target;
+
+          for (let c = range[0]; c <= range[1]; c++) {
+            const cell = getCell(r, c);
+            if (!cell) continue;
+            const holder = cell.closest(".cell");
+            holder.classList.remove("wrong", "correct");
+            if (cell.value) holder.classList.add(ok ? "correct" : "wrong");
+          }
+
+          if (ok) correctRows++;
+          if (enterCheckRow === r) {
+            if (ok) shouldPlayOk = true;
+            else if (rowHasAnyInput(r, range)) shouldPlayBad = true;
+          }
+        }
+
+        if (shouldPlayOk) playOk();
+        else if (shouldPlayBad) playBad();
+
+        statusPill.textContent = `${correctRows}/${ROWS} hàng đúng`;
+        barEl.style.width = `${Math.round((100 * correctRows) / ROWS)}%`;
+        if (correctRows === ROWS) {
+          celebrate();
+          openModal();
+        }
+      }
+
+      function hintSequential(r) {
+        if (!gameReady) return;
+        const { left, right } = findRowBounds(r);
+        if (left === null || right === null) return;
+        let revealed = false;
+        for (let i = hintProgress[r]; i <= right - left; i++) {
+          const col = left + i;
+          const cell = getCell(r, col);
+          if (!cell) continue;
+          const expected = grid[r][col].expected;
+          const attempt = (cell.value || "").toUpperCase();
+          if (attempt !== expected) {
+            cell.value = expected;
+            cell.closest(".cell").classList.add("correct");
+            hintProgress[r] = i + 1;
+            checkAll();
+            cell.focus();
+            revealed = true;
+            break;
+          }
+        }
+        if (!revealed) {
+          for (let i = 0; i <= right - left; i++) {
+            const col = left + i;
+            const cell = getCell(r, col);
+            const expected = grid[r][col].expected;
+            if ((cell.value || "").toUpperCase() !== expected) {
+              cell.value = expected;
+              cell.closest(".cell").classList.add("correct");
+              hintProgress[r] = i + 1;
+              checkAll();
+              cell.focus();
+              break;
+            }
+          }
+        }
+      }
+
+      function getKeywordRows() {
+        const rows = [];
+        for (let r = 0; r < ROWS; r++) {
+          if (grid[r][SURPRISE_COL]) rows.push(r);
+        }
+        return rows;
+      }
+
+      function hintKeywordSequential() {
+        if (!gameReady) return;
+        const rows = getKeywordRows();
+        if (!rows.length) return;
+
+        let revealed = false;
+        for (let i = hintKeywordProgress; i < rows.length; i++) {
+          const r = rows[i];
+          const cell = getCell(r, SURPRISE_COL);
+          if (!cell) continue;
+          const expected = grid[r][SURPRISE_COL].expected;
+          const attempt = (cell.value || "").toUpperCase();
+          if (attempt !== expected) {
+            cell.value = expected;
+            cell.closest(".cell").classList.add("correct");
+            hintKeywordProgress = i + 1;
+            checkAll();
+            cell.focus();
+            revealed = true;
+            break;
+          }
+        }
+
+        if (!revealed) {
+          for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            const cell = getCell(r, SURPRISE_COL);
+            if (!cell) continue;
+            const expected = grid[r][SURPRISE_COL].expected;
+            const attempt = (cell.value || "").toUpperCase();
+            if (attempt !== expected) {
+              cell.value = expected;
+              cell.closest(".cell").classList.add("correct");
+              hintKeywordProgress = i + 1;
+              checkAll();
+              cell.focus();
+              break;
+            }
+          }
+        }
+      }
+
+      function revealRowQuick(r) {
+        const { left, right } = findRowBounds(r);
+        if (left === null || right === null) return;
+        for (let c = left; c <= right; c++) {
+          const cell = getCell(r, c);
+          if (!cell) continue;
+          cell.value = grid[r][c].expected;
+          cell.closest(".cell").classList.add("correct");
+        }
+        hintProgress[r] = right - left + 1;
+        checkAll();
+        focusRow(r);
+      }
+
+      function revealKeywordQuick() {
+        const rows = getKeywordRows();
+        if (!rows.length) return;
+        for (const r of rows) {
+          const cell = getCell(r, SURPRISE_COL);
+          if (!cell) continue;
+          cell.value = grid[r][SURPRISE_COL].expected;
+          cell.closest(".cell").classList.add("correct");
+        }
+        hintKeywordProgress = rows.length;
+        checkAll();
+        if (keywordMode) checkKeywordColumn();
+        focusKeywordColumn(false);
+      }
+
+      function clearRowQuick(r) {
+        const { left, right } = findRowBounds(r);
+        if (left === null || right === null) return;
+        for (let c = left; c <= right; c++) {
+          const cell = getCell(r, c);
+          if (!cell) continue;
+          cell.value = "";
+          cell.closest(".cell").classList.remove("wrong", "correct");
+        }
+        hintProgress[r] = 0;
+        hintKeywordProgress = 0;
+        checkAll();
+        focusRow(r);
+      }
+
+      function clearKeywordQuick() {
+        const rows = getKeywordRows();
+        if (!rows.length) return;
+        for (const r of rows) {
+          const cell = getCell(r, SURPRISE_COL);
+          if (!cell) continue;
+          cell.value = "";
+          cell.closest(".cell").classList.remove("wrong", "correct");
+        }
+        hintKeywordProgress = 0;
+        checkAll();
+        checkKeywordColumn();
+        focusKeywordColumn(true);
+      }
+
+      function onType(e) {
+        const inp = e.target;
+        const v = inp.value.toUpperCase().replace(/\s/g, "");
+        inp.value = v.slice(-1);
+        if (keywordMode) {
+          const r = +inp.dataset.row;
+          const keywordCell = getCell(r, SURPRISE_COL);
+          if (keywordCell && keywordCell !== inp) {
+            keywordCell.value = inp.value;
+            inp.value = "";
+            moveKeyword(keywordCell, "next");
+            return;
+          }
+          moveKeyword(inp, "next");
+          return;
+        }
+        move(inp, "next");
+      }
+
+      function onNav(e) {
+        const r = +e.target.dataset.row;
+        const c = +e.target.dataset.col;
+        if (keywordMode) {
+          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+            e.preventDefault();
+            moveKeyword(e.target, "next");
+          }
+          if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            e.preventDefault();
+            moveKeyword(e.target, "prev");
+          }
+          if (e.key === "Backspace" && !e.target.value) {
+            e.preventDefault();
+            moveKeyword(e.target, "prev", true);
+          }
+        } else {
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            move(e.target, "next");
+          }
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            move(e.target, "prev");
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            step(r, c, -1, 0);
+          }
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            step(r, c, 1, 0);
+          }
+          if (e.key === "Backspace" && !e.target.value) {
+            e.preventDefault();
+            move(e.target, "prev", true);
+          }
+        }
+
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (keywordMode) {
+            checkKeywordColumn();
+          } else {
+            enterCheckRow = r;
+            checkAll();
+            enterCheckRow = null;
+          }
+        }
+
+        if (e.key === "[" || e.key === "PageUp") setSlide(currentSlide - 1);
+        if (e.key === "]" || e.key === "PageDown") setSlide(currentSlide + 1);
+      }
+
+      function focusRow(r) {
+        const { left } = findRowBounds(r);
+        if (left == null) return;
+        getCell(r, left)?.focus();
+      }
+
+      function resetGame() {
+        if (!gameReady) return;
+        document.querySelectorAll(".cell input").forEach((c) => {
+          c.value = "";
+          c.closest(".cell").classList.remove("wrong", "correct");
+        });
+        barEl.style.width = "0%";
+        statusPill.textContent = `0/${ROWS} hàng đúng`;
+        hintProgress = Array(ROWS).fill(0);
+        hintKeywordProgress = 0;
+        startTime = Date.now();
+        setKeywordMode(false);
+        setSlide(0);
+        focusRow(0);
+      }
+
+      function tickTimer() {
+        if (!gameReady) {
+          timerEl.textContent = "00:00";
+          return;
+        }
+        const t = Math.floor((Date.now() - startTime) / 1000);
+        const m = String(Math.floor(t / 60)).padStart(2, "0");
+        const s = String(t % 60).padStart(2, "0");
+        timerEl.textContent = `${m}:${s}`;
+      }
+
+      function openModal() {
+        const m = document.getElementById("modal");
+        m.classList.add("show");
+        m.setAttribute("aria-hidden", "false");
+      }
+
+      function closeModal() {
+        const m = document.getElementById("modal");
+        m.classList.remove("show");
+        m.setAttribute("aria-hidden", "true");
+      }
+
+      function celebrate() {
+        const wrap = document.getElementById("confetti");
+        const icons = ["💖", "🌸", "💐", "✨", "🌺", "💗", "🌷"];
+        for (let i = 0; i < 80; i++) {
+          const d = document.createElement("div");
+          d.className = "dot";
+          d.textContent = icons[(Math.random() * icons.length) | 0];
+          d.style.left = Math.random() * 100 + "vw";
+          d.style.top = -10 - Math.random() * 20 + "vh";
+          d.style.transform = `rotate(${Math.random() * 360}deg)`;
+          d.style.animationDelay = Math.random() * 0.5 + "s";
+          wrap.appendChild(d);
+          setTimeout(() => wrap.removeChild(d), 1800);
+        }
+      }
+
+      function fitGrid() {
+        if (!gameReady || !ROWS || !COLS) return;
+        const root = document.documentElement;
+        const gridWrapEl = gridEl.parentElement;
+        const styles = getComputedStyle(leftCardEl);
+        const wrapStyles = getComputedStyle(gridWrapEl);
+        const gridStyles = getComputedStyle(gridEl);
+        const padX =
+          parseFloat(styles.paddingLeft || "12") +
+          parseFloat(styles.paddingRight || "12");
+        const wrapPadX =
+          parseFloat(wrapStyles.paddingLeft || "0") +
+          parseFloat(wrapStyles.paddingRight || "0");
+        const gridPadX =
+          parseFloat(gridStyles.paddingLeft || "0") +
+          parseFloat(gridStyles.paddingRight || "0");
+        const gridBorderX =
+          parseFloat(gridStyles.borderLeftWidth || "0") +
+          parseFloat(gridStyles.borderRightWidth || "0");
+        const availW = Math.max(
+          0,
+          leftCardEl.clientWidth - padX - wrapPadX - gridPadX - gridBorderX,
+        );
+
+        const viewportH = window.innerHeight;
+        const verticalPadding = window.matchMedia("(min-width:1025px)").matches
+          ? 240
+          : 300;
+
+        const gapSmall =
+          window.innerWidth < 480 ? 2 : window.innerWidth < 768 ? 3 : 4;
+        const cellFromW = Math.floor((availW - (COLS - 1) * gapSmall) / COLS);
+        const cellFromH = Math.floor(
+          (viewportH - verticalPadding - (ROWS - 1) * gapSmall) / ROWS,
+        );
+        const target = Math.max(18, Math.min(40, cellFromW, cellFromH));
+
+        root.style.setProperty("--gap", `${gapSmall}px`);
+        root.style.setProperty("--size", `${target}px`);
+
+        const guide = document.getElementById("surpriseColGuide");
+        if (guide) {
+          const gridPadLeft = parseFloat(gridStyles.paddingLeft || "0");
+          const left = gridPadLeft + SURPRISE_COL * (target + gapSmall);
+          guide.style.left = `${left}px`;
+          guide.style.width = `${target}px`;
+          guide.style.top = "8px";
+          guide.style.bottom = "8px";
+        }
+
+        labelsEl.style.setProperty("--size", `${target}px`);
+        labelsEl.style.setProperty("--gap", `${gapSmall}px`);
+      }
+
+      let fitGridTimer = null;
+      function scheduleFitGrid() {
+        if (!gameReady) return;
+        fitGrid();
+        requestAnimationFrame(() => fitGrid());
+        clearTimeout(fitGridTimer);
+        fitGridTimer = setTimeout(() => fitGrid(), 180);
+      }
+
+      function startGame(words, popup, theme, meta) {
+        applyConfig(words, popup, theme, meta);
+        layoutWords();
+        buildGrid();
+        buildRowLabels();
+        buildPager();
+        closeModal();
+
+        barEl.style.width = "0%";
+        statusPill.textContent = `0/${ROWS} hàng đúng`;
+        startTime = Date.now();
+        gameReady = true;
+        setKeywordMode(false);
+
+        setupCard.classList.add("hidden");
+        gameApp.classList.remove("hidden");
+
+        scheduleFitGrid();
+        setTimeout(() => {
+          scheduleFitGrid();
+          focusRow(0);
+        }, 80);
+      }
+
+      function openSetupEditor(useCurrent = true) {
+        if (useCurrent && WORDS.length) {
+          loadSetupRows(
+            WORDS.map((w) => ({
+              vi: w.vi,
+              answer: w.answer,
+              crossIndex: w.crossIndex,
+            })),
+          );
+          setPopupToSetupForm(WIN_POPUP);
+          setGameMetaToSetupForm(GAME_META);
+          setupThemeSelectEl.value = currentTheme;
+          applyTheme(currentTheme);
+          writeSetupDraft();
+        }
+        gameReady = false;
+        setKeywordMode(false);
+        closeModal();
+        setupCard.classList.remove("hidden");
+        gameApp.classList.add("hidden");
+        tickTimer();
+        setSetupMessage(
+          "Bạn có thể chỉnh dữ liệu rồi bấm Bắt đầu chơi.",
+          "setupOk",
+        );
+      }
+
+      document.getElementById("prevSlide").addEventListener("click", () => {
+        if (!gameReady) return;
+        setSlide(currentSlide - 1);
+      });
+      document.getElementById("nextSlide").addEventListener("click", () => {
+        if (!gameReady) return;
+        setSlide(currentSlide + 1);
+      });
+      document.getElementById("jumpToRow").addEventListener("click", () => {
+        if (!gameReady) return;
+        focusRow(currentSlide);
+      });
+      clueSlideEl.addEventListener("click", () => {
+        if (!gameReady) return;
+        focusRow(currentSlide);
+      });
+      document.getElementById("hintThis").addEventListener("click", () => {
+        if (!gameReady) return;
+        if (keywordMode) hintKeywordSequential();
+        else hintSequential(currentSlide);
+      });
+      document.getElementById("revealThis").addEventListener("click", () => {
+        if (!gameReady) return;
+        if (keywordMode) revealKeywordQuick();
+        else revealRowQuick(currentSlide);
+      });
+      document.getElementById("clearThis").addEventListener("click", () => {
+        if (!gameReady) return;
+        if (keywordMode) clearKeywordQuick();
+        else clearRowQuick(currentSlide);
+      });
+
+      document.getElementById("checkBtn").addEventListener("click", () => {
+        if (!gameReady) return;
+        if (keywordMode) {
+          checkKeywordColumn();
+          return;
+        }
+        const active = document.activeElement;
+        if (
+          active &&
+          active.tagName === "INPUT" &&
+          active.dataset.row != null
+        ) {
+          enterCheckRow = +active.dataset.row;
+        } else {
+          enterCheckRow = currentSlide;
+        }
+        checkAll();
+        enterCheckRow = null;
+      });
+
+      keywordModeBtn.addEventListener("click", () => {
+        if (!gameReady) return;
+        setKeywordMode(!keywordMode);
+      });
+      musicToggleBtn.addEventListener("click", () => {
+        setMusicEnabled(!musicEnabled);
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", resetGame);
+      document
+        .getElementById("closeModal")
+        .addEventListener("click", closeModal);
+      document.getElementById("editSetupBtn").addEventListener("click", () => {
+        openSetupEditor(true);
+      });
+
+      document.getElementById("addRowBtn").addEventListener("click", () => {
+        setupRowsEl.appendChild(createSetupRow());
+        refreshAllSetupRowMeta();
+        writeSetupDraft();
+      });
+      setupGameTitleEl.addEventListener("input", writeSetupDraft);
+      setupGameSubtitleEl.addEventListener("input", writeSetupDraft);
+      setupPopupTitleEl.addEventListener("input", writeSetupDraft);
+      setupPopupBodyEl.addEventListener("input", writeSetupDraft);
+      setupThemeSelectEl.addEventListener("change", () => {
+        applyTheme(setupThemeSelectEl.value);
+        writeSetupDraft();
+      });
+
+      document.getElementById("loadSampleBtn").addEventListener("click", () => {
+        loadSetupRows(DEFAULT_WORDS);
+        setGameMetaToSetupForm(SAMPLE_GAME_META);
+        setPopupToSetupForm(SAMPLE_POPUP);
+        setupThemeSelectEl.value = "rose";
+        applyTheme("rose");
+        writeSetupDraft();
+        setSetupMessage(
+          "Đã nạp bộ dữ liệu mẫu 20/10. Bạn có thể chỉnh tiếp rồi bấm Bắt đầu chơi.",
+          "setupOk",
+        );
+      });
+      document
+        .getElementById("clearAllSetupBtn")
+        .addEventListener("click", () => {
+          clearSetupDraft();
+          loadSetupRows([{ vi: "", answer: "", crossPos: 1 }]);
+          setGameMetaToSetupForm(DEFAULT_GAME_META);
+          setPopupToSetupForm(DEFAULT_POPUP);
+          setupThemeSelectEl.value = "rose";
+          applyTheme("rose");
+          writeSetupDraft();
+          setSetupMessage(
+            "Đã xóa toàn bộ dữ liệu đã lưu. Bạn có thể nhập lại từ đầu.",
+            "setupOk",
+          );
+        });
+
+      document.getElementById("startGameBtn").addEventListener("click", () => {
+        try {
+          const words = collectSetupWords();
+          const meta = getGameMetaFromSetupForm();
+          const popup = getPopupFromSetupForm();
+          const theme = setupThemeSelectEl.value || "rose";
+          startGame(words, popup, theme, meta);
+          setSetupMessage("", "");
+        } catch (err) {
+          setSetupMessage(err.message || "Dữ liệu chưa hợp lệ.", "setupError");
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (!gameReady) return;
+        if (e.key === "Enter" && !e.target.matches("input")) {
+          if (keywordMode) {
+            checkKeywordColumn();
+          } else {
+            enterCheckRow = currentSlide;
+            checkAll();
+            enterCheckRow = null;
+          }
+        }
+      });
+
+      window.addEventListener("resize", scheduleFitGrid);
+      window.addEventListener("orientationchange", scheduleFitGrid);
+      window.addEventListener("focus", scheduleFitGrid);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", scheduleFitGrid);
+      }
+      if ("ResizeObserver" in window) {
+        const layoutObserver = new ResizeObserver(() => scheduleFitGrid());
+        layoutObserver.observe(leftCardEl);
+      }
+      setInterval(tickTimer, 1000);
+      tickTimer();
+      setMusicEnabled(true);
+
+      const savedDraft = readSetupDraft();
+      if (savedDraft) {
+        loadSetupRows(savedDraft.rows);
+        setGameMetaToSetupForm(savedDraft.meta);
+        setPopupToSetupForm(savedDraft.popup);
+        setupThemeSelectEl.value = savedDraft.theme || "rose";
+        applyTheme(savedDraft.theme || "rose");
+        writeSetupDraft();
+        setSetupMessage(
+          "Đã khôi phục bộ câu hỏi bạn nhập trước đó từ localStorage.",
+          "setupOk",
+        );
+      } else {
+        loadSetupRows(DEFAULT_WORDS);
+        setGameMetaToSetupForm(SAMPLE_GAME_META);
+        setPopupToSetupForm(SAMPLE_POPUP);
+        setupThemeSelectEl.value = "rose";
+        applyTheme("rose");
+        writeSetupDraft();
+        setSetupMessage(
+          "Đã nạp dữ liệu mẫu 20/10. Chỉnh nội dung nếu cần rồi bấm Bắt đầu chơi.",
+          "setupOk",
+        );
+      }
+    </script>
+  </body>
+</html>
